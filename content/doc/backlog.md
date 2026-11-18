@@ -7,7 +7,6 @@ There are no TODO/FIXME/HACK comments in `content/fill.js` (checked with grep). 
 | Priority | Item | Where | Details |
 |---|---|---|---|
 | Med | **Confirm Lockheed (Eightfold) dropdowns on a fresh application** | `fillCombo` in fill.js | After the own-menu fix (history #14), the Veteran Status menu opened and an option was picked on the real page (2026-11-18). So the earlier failure was the leftover-menu bug, and clicking the arrow button isn't needed. Sponsorship and Visa status were already set, so their menus weren't exercised; check them on a new application |
-| High | The simulated-page tests aren't in the repo | — | The jsdom tests (sample Greenhouse form, Lockheed layout mock, custom dropdown mocks) live in the session's temporary folder and will be lost. Add them under `test/` with `jsdom` as a dev dependency |
 | Med | Typed filter text can be left in a searchable dropdown | fill.js:222–224 | If typing showed a menu but no option matched, the typed answer stays in the box. It's only cleared when no menu appeared at all |
 | Med | Radio buttons without a `name` attribute each become their own one-option group | `collect()` in fill.js | The group key falls back to `Math.random()`. Custom-built radio groups without names would be read as separate questions |
 | Low | Outline lookups can throw on unusual markup | fill.js:319, 336 | `parentElement.parentElement` can be null. The error is caught (line 444), but the field shows "Couldn't fill this one automatically" instead of being filled |

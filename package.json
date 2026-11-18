@@ -1,0 +1,11 @@
+{
+  "name": "apply-autofill",
+  "private": true,
+  "description": "Firefox add-on that fills job applications from your own answer bank. Never submits.",
+  "scripts": {
+    "test": "node test/run.js && node --test \"test/dom/*.test.js\""
+  },
+  "devDependencies": {
+    "jsdom": "24.1.3"
+  }
+}

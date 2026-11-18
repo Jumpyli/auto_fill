@@ -1,6 +1,6 @@
 # Form filler — test suite
 
-These are end-to-end cases to run by hand in Firefox, with the add-on loaded from `about:debugging` and an answer bank containing the answers named in each case. **Automated coverage:** `node test/run.js` covers matching only. Automated page tests for FF-01–FF-05, FF-08–FF-10 and FF-14–FF-16 exist only as temporary scripts (see backlog).
+These are end-to-end cases to run by hand in Firefox, with the add-on loaded from `about:debugging` and an answer bank containing the answers named in each case. **Automated coverage:** `npm test` (after `npm install`) runs `test/run.js` (matching and resume parsing) and the simulated-page tests in `test/dom/`. Those use jsdom and cover FF-01, FF-02, FF-09, FF-09b, FF-10, FF-11, FF-12, FF-14, FF-15, FF-19 (mock), FF-20 (mock), FF-21 (mock), FF-23, FF-24, FF-26, FF-29, FF-30, FF-32 and FF-33. Simulated pages have no real layout or iframes, so FF-03, FF-05 and real-site dropdown behavior still need a manual run in Firefox.
 
 Branch references point to the flows in `workflow-diagram.md`.
 

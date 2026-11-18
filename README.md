@@ -46,7 +46,7 @@ it picks the option closest to your answer, and it understands yes/no and "decli
 
 ## Tests
 
-`node test/run.js` covers matching and resume parsing.
+`npm install` once, then `npm test`. It runs `test/run.js` (matching and resume parsing) and the simulated-page tests in `test/dom/` (form filling, dropdowns, learning, signatures). Firefox itself isn't needed.
 
 ## Known gaps
 
