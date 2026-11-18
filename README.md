@@ -42,7 +42,10 @@ it picks the option closest to your answer, and it understands yes/no and "decli
 - `content/fill.js`: reads and fills the page, draws the panel
 - `options/`: answer bank page
 - `popup/`: toolbar menu
+- `background/background.js`: first-install setup, adding new starter questions on updates, keyboard shortcut, message relay
 - `vendor/`: pdf.js (Apache 2.0)
+
+Each component folder has a `doc/` folder (architecture, workflows, history, backlog, test cases) for whoever works on it next.
 
 ## Tests
 
@@ -51,6 +54,6 @@ it picks the option closest to your answer, and it understands yes/no and "decli
 ## Known gaps
 
 - **v1 uses no AI model.** Matching is word overlap plus the learning button. A local model is planned for v2 (see the `TODO(v2, local model)` comments in `lib/match.js`).
-- **Custom dropdowns** (site-built menus) are opened and picked automatically, but some sites' menus aren't recognized yet. Lockheed's (Eightfold) is one of them. Those show as red with the reason, plus a **Copy debug info** button.
+- **Custom dropdowns** (site-built menus) are opened and picked automatically; this works on Lockheed's (Eightfold) form. Menus that can't be opened show as red with the reason, plus a **Copy debug info** button.
 - **Workday** spreads applications over several pages. Run Fill on each page.
 - **Rewordings with no shared words** won't match until you add them as "other wordings", or until the local matching model (planned next) is added.
