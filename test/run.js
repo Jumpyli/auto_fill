@@ -40,10 +40,13 @@ opt("Master's", ["High school", "Bachelor's Degree", "Master's Degree", "PhD"], 
 check("follow-up detected", M.isFollowUp("If you answered \"Yes\" and are a former LM employee: Enter the LM Person/Employee ID"), "");
 check("normal question not follow-up", !M.isFollowUp("Have you previously worked for Lockheed Martin?"), "");
 check("consent detected", M.isConsent("I certify that the information provided is true"), "");
+check("signature detected", M.isConsent("Please sign by typing your full legal name"), "");
+check("agreement detected", M.isConsent("I have read and understand and I agree to the above"), "");
+check("design question not consent", !M.isConsent("Describe a design you are proud of"), "");
 check("normal question not consent", !M.isConsent("Are you willing to relocate?"), "");
 
-const resume = `JIMMY LI
-San Francisco, CA | (415) 555-0134 | jimmy.li@example.com | linkedin.com/in/jimmy-li | github.com/jimmyli | jimmyli.dev
+const resume = `JANE DOE
+San Francisco, CA | (415) 555-0134 | jane.doe@example.com | linkedin.com/in/jane-doe | github.com/janedoe | janedoe.dev
 EDUCATION
 University of California, Berkeley Berkeley, CA
 Master of Science in Computer Science GPA: 3.87/4.0 Expected May 2026
@@ -54,8 +57,8 @@ SKILLS
 Languages: Python, C++, SQL
 Tools: PyTorch, Docker`;
 const v = R.parse(resume).values;
-const want = { "full-name": "Jimmy Li", "first-name": "Jimmy", "last-name": "Li", email: "jimmy.li@example.com", phone: "(415) 555-0134",
-  linkedin: "https://linkedin.com/in/jimmy-li", github: "https://github.com/jimmyli", website: "https://jimmyli.dev",
+const want = { "full-name": "Jane Doe", "first-name": "Jane", "last-name": "Doe", email: "jane.doe@example.com", phone: "(415) 555-0134",
+  linkedin: "https://linkedin.com/in/jane-doe", github: "https://github.com/janedoe", website: "https://janedoe.dev",
   school: "University of California", degree: "Master of Science in Computer Science", major: "Computer Science", gpa: "3.87/4.0", "grad-date": "May 2026" };
 for (const [k, val] of Object.entries(want)) check(`resume ${k}`, v[k] === val, v[k]);
 check("resume skills", /PyTorch/.test(v.skills || ""), v.skills);
