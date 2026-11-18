@@ -46,7 +46,7 @@ sequenceDiagram
 
 If the page is a Firefox page or the add-ons store, injection fails and the popup says "Can't fill this page."
 
-## 3. One field: `handle()` decisions (lines 263–347)
+## 3. One field: `handle()` decisions (lines 285–369)
 
 ```mermaid
 flowchart TD
@@ -87,9 +87,9 @@ flowchart TD
     CL -- yes --> CK2[tick matches → always check]
 ```
 
-Any exception inside `handle()` turns that field into **missing: "Couldn't fill this one automatically"** (line 444). The other fields continue.
+Any exception inside `handle()` turns that field into **missing: "Couldn't fill this one automatically"** (line 466). The other fields continue.
 
-## 4. Custom dropdown: `fillCombo()` (lines 198–237)
+## 4. Custom dropdown: `fillCombo()` (lines 202–259)
 
 ```mermaid
 flowchart TD
@@ -112,9 +112,9 @@ flowchart TD
     V -- no --> CK2[check: make sure it stuck]
 ```
 
-A dropdown's menu is the element named by its `aria-controls`/`aria-owns`, and only that. Without a named menu, it's a visible `role="listbox"` that appeared after the dropdown was opened (`menuOptions`). Every exit closes the menu (Escape, blur) before the next dropdown starts. Only `role="option"` elements are clicked. If `fillCombo` throws, the field becomes **missing: pick it yourself** (line 449).
+A dropdown's menu is the element named by its `aria-controls`/`aria-owns`, and only that. Without a named menu, it's a visible `role="listbox"` that appeared after the dropdown was opened (`menuOptions`). Every exit closes the menu (Escape, blur) before the next dropdown starts. Only `role="option"` elements are clicked. If `fillCombo` throws, the field becomes **missing: pick it yourself** (line 471).
 
-## 5. "Save my new answers": `learn()` (lines 471–498)
+## 5. "Save my new answers": `learn()` (lines 493–520)
 
 ```mermaid
 flowchart TD
@@ -135,4 +135,4 @@ flowchart TD
 
 ## 6. Clear highlights / close
 
-The **×** button or **Clear highlights** restores each field's original outline and removes the panel (lines 357–361). Field values stay as filled.
+The **×** button or **Clear highlights** restores each field's original outline and removes the panel (lines 379–383). Field values stay as filled.

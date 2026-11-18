@@ -2,6 +2,12 @@
 
 Firefox add-on (Manifest V2) that fills job application forms from the user's own answer bank. It reads the page's HTML, fills text boxes, dropdowns (including site-built ones), radio buttons, checkboxes and resume uploads, outlines each field green/yellow/red, and learns answers the user types. **It never submits**, and it always leaves agreements and signatures to the user. v1 uses no AI model (`TODO(v2, local model)` in `lib/match.js`). Everything stays in the browser.
 
+## Context
+
+- **Who it's for:** the repo owner, applying to new-grad jobs in Firefox. **Main target from Nov 2026, for a few months: Lockheed Martin**, whose applications run on Eightfold (`lockheedmartin.eightfold.ai`): multi-step, saves progress, custom dropdowns (`role="combobox"` + `aria-controls="list-NN"`), typed-signature field. Most real-site fixes so far came from Lockheed screenshots and debug info (see `content/doc/update-history.md`).
+- **Related, separate:** a claude.ai web app "Apply Kit" (answer bank with copy buttons, "Draft with Claude" for why-us answers, application tracker). It has its own bank; nothing syncs with this add-on.
+- **Top open items (2026-11-18):** (1) `options/doc/backlog.md` high: an open bank page can erase answers learned in another tab. (2) `content/doc/backlog.md`: confirm Lockheed's sponsorship and Visa dropdowns on a fresh application (Veteran Status already confirmed working). (3) v2 local model (`lib/doc/backlog.md`). Full lists are in each `backlog.md`.
+
 ## Components
 
 Each component has a `doc/` folder beside its code: `architecture.md`, `workflow-diagram.md`, `update-history.md`, `backlog.md`, `test-suite.md`.
