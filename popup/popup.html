@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --bg: #fff; --ink: #172033; --muted: #5B6680; --line: #D9DFEA; --accent: #2C45B5; --accent-ink: #fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #161C29; --ink: #E6EAF3; --muted: #97A1B8; --line: #283044; --accent: #93A6FF; --accent-ink: #0E121B; } }
+  body { margin: 0; width: 280px; background: var(--bg); color: var(--ink); font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { display: grid; gap: 10px; padding: 14px; }
+  h1 { font-size: 15px; margin: 0; }
+  p { margin: 0; color: var(--muted); }
+  button { font: inherit; font-weight: 600; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; text-align: left; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); text-align: center; }
+  #status { min-height: 1.4em; }
+  kbd { font: 11px ui-monospace, Menlo, monospace; border: 1px solid var(--line); border-radius: 4px; padding: 1px 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Apply Autofill</h1>
+  <button class="primary" id="fill">Fill this page</button>
+  <p id="status">Fills what it can, then stops. It never submits. Shortcut: <kbd>Alt+Shift+A</kbd></p>
+  <button id="learn">Save answers I typed to my bank</button>
+  <button id="bank">Open answer bank</button>
+  <p id="bank-count"></p>
+</main>
+<script src="popup.js"></script>
+</body>
+</html>
