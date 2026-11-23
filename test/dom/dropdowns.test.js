@@ -80,3 +80,26 @@ test("Lockheed (Eightfold) case: never reads or clicks another question's open m
   assert.ok(panel().some((row) => row.includes("Couldn't open this dropdown's menu")));
   assert.ok(hasDebugButton());
 });
+
+test("Lockheed (Eightfold) case: a choice shown as a chip beside an empty input counts as answered", async () => {
+  const bank = bankWith({});
+  const html = `<form>
+   <div><label id="h_l">How did you hear about this position?</label>
+     <div class="select"><div class="chips"><span class="chip"><button type="button" aria-label="Remove">×</button><span>Company Website</span></span></div>
+       <input id="hear" role="combobox" aria-controls="list-5" aria-expanded="false" aria-labelledby="h_l" placeholder="Select" value=""></div></div>
+   <div><label id="a_l">Are you 16 years or older?</label>
+     <div class="select"><div class="chips"><span class="chip"><svg aria-hidden="true"></svg><span>Yes</span></span></div>
+       <input id="age" role="combobox" aria-controls="list-6" aria-expanded="false" aria-labelledby="a_l" aria-describedby="a_err" placeholder="Select" value="">
+       <span id="a_err" class="field-error"></span></div></div>
+   <div><label id="p_l">Preferred Pronoun</label>
+     <div class="select"><input id="pron" role="combobox" aria-controls="list-7" aria-expanded="false" aria-labelledby="p_l" aria-describedby="p_err" placeholder="Select" value="">
+       <span id="p_err">This field is required</span></div></div>
+  </form>`;
+  const page = loadPage(html, { bank });
+  await page.send({ type: "fill" });
+  const rows = page.panel();
+  assert.ok(rows.some((r) => r.startsWith("How did you hear about this position?") && r.includes("Already filled in")), rows.join("\n"));
+  assert.ok(rows.some((r) => r.startsWith("Are you 16 years or older?") && r.includes("Already filled in")), rows.join("\n"));
+  assert.ok(rows.some((r) => r.startsWith("Preferred Pronoun") && !r.includes("Already filled in")), "an empty dropdown with an error message stays unanswered");
+  assert.equal(page.hasDebugButton(), true, "red dropdowns can be copied as debug info");
+});

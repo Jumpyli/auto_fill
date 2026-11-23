@@ -159,8 +159,28 @@
     return fn();
   }
   function comboValue(el) {
-    const t = el.tagName === "INPUT" ? el.value.trim() : textWithout(el);
+    let t = el.tagName === "INPUT" ? el.value.trim() : textWithout(el);
+    if (!t && el.tagName === "INPUT") t = chipText(el);
     return /^(select|choose|please|--|search)/i.test(t) ? "" : t;
+  }
+  // Some dropdowns keep their input empty and show the choice as a chip beside it ("× Company Website" on
+  // Lockheed's Eightfold form). Read the text next to the input, but only inside a wrapper that holds this one
+  // control and not its question, error message or menu, so a label or "required" note is never taken as an answer.
+  function chipText(el) {
+    const ids = (a) => (el.getAttribute(a) || "").split(/\s+/).filter(Boolean);
+    const labelIds = ids("aria-labelledby"), noteIds = [...ids("aria-describedby"), ...ids("aria-errormessage")];
+    let box = el.parentElement;
+    for (let i = 0; box && i < 4; i++, box = box.parentElement) {
+      if (box.querySelectorAll('input, select, textarea, [role="combobox"]').length > 1) return "";
+      if (box.querySelector("label") || labelIds.some((id) => { const n = document.getElementById(id); return n && box.contains(n); })) return "";
+      const c = box.cloneNode(true);
+      c.querySelectorAll('select, option, input, textarea, button, svg, [role="listbox"], [role="option"], [role="alert"], [aria-live], [aria-hidden="true"], [class*="error" i], [class*="helper" i], [class*="hint" i]')
+        .forEach((n) => n.remove());
+      c.querySelectorAll("[id]").forEach((n) => noteIds.includes(n.id) && n.remove());
+      const t = squash(c.textContent);
+      if (t) return t.length <= 200 ? t : "";
+    }
+    return "";
   }
   function press(el) {
     for (const type of ["pointerdown", "mousedown", "pointerup", "mouseup", "click"]) {
@@ -470,6 +490,8 @@
       try { await fillCombo(it); }
       catch { it.status = "missing"; it.note = `Custom dropdown. Pick "${short(it.answer, 60)}" yourself.`; }
     }
+    // Red dropdowns keep their markup too, so a site whose dropdowns are misread can be studied from "Copy debug info".
+    for (const it of items) if (it.kind === "combo" && it.status === "missing" && !it.debug) it.debug = { label: it.label, why: "not-filled", note: it.note, html: snapshot(it.el) };
     for (const it of items) if (it.status !== "skip") outline(it.outline || it.el, COLORS[it.status]);
     renderPanel();
     const counts = { good: 0, check: 0, missing: 0, skip: 0 };
