@@ -435,7 +435,7 @@
       </div>
       <ul></ul>
       <div class="f">
-        <button class="b pr" data-a="learn" title="Save the answers you typed into red fields to your answer bank">Save my new answers</button>
+        <button class="b pr" data-a="learn" title="Save answers you typed into red fields, or changed after filling, to your answer bank">Save my new answers</button>
         <button class="b" data-a="close">Clear highlights</button>
         ${items.some((i) => i.debug) ? '<button class="b" data-a="debug" title="Copy details about dropdowns that could not be filled">Copy debug info</button>' : ""}
       </div>
@@ -466,7 +466,7 @@
         ta.remove();
       });
     });
-    root.querySelector("[data-a=learn]").addEventListener("click", () => learn().then((n) => renderPanel(n ? `Saved ${n} new answer${n > 1 ? "s" : ""} to your bank.` : "No new answers to save. Type answers into the red fields first.")));
+    root.querySelector("[data-a=learn]").addEventListener("click", () => learn().then((n) => renderPanel(learnMessage(n))));
     document.documentElement.append(host);
   }
 
@@ -486,6 +486,8 @@
     // Red dropdowns keep their markup too, so a site whose dropdowns are misread can be studied from "Copy debug info".
     for (const it of items) if (it.kind === "combo" && it.status === "missing" && !it.debug) it.debug = { label: it.label, why: "not-filled", note: it.note, html: snapshot(it.el) };
     for (const it of items) if (it.status !== "skip") outline(it.outline || it.el, COLORS[it.status]);
+    // What each field showed after filling, so learning can tell which ones the user changed.
+    for (const it of items) { try { it.initial = currentValue(it); } catch { it.initial = ""; } }
     renderPanel();
     const counts = { good: 0, check: 0, missing: 0, skip: 0 };
     for (const it of items) counts[it.status]++;
@@ -504,21 +506,35 @@
     return "";
   }
 
-  // Answers the user typed into fields the bank couldn't fill become new bank entries.
+  function learnMessage(n) {
+    const saved = n ? `Saved ${n} new answer${n > 1 ? "s" : ""} to your bank.` : "";
+    // An answer saved for this exact question is never overwritten from the form; say where to change it.
+    const kept = unsaved.length ? ` Your bank already has a different answer for "${short(unsaved[0], 60)}"${unsaved.length > 1 ? ` and ${unsaved.length - 1} more` : ""}. Change it on the answer bank page.` : "";
+    return (saved + kept).trim() || "No new answers to save. Type or change answers on the page first.";
+  }
+  // Answers the user typed into red fields, or changed in any other field after Fill, become bank entries.
+  let unsaved = [];
   async function learn() {
     const { bank = [] } = await browser.storage.local.get("bank");
     let n = 0;
+    unsaved = [];
     for (const it of items) {
-      if ((it.status !== "missing" && !it.learnable) || !["text", "select", "radio", "combo"].includes(it.kind)) continue;
+      if (!["text", "select", "radio", "combo"].includes(it.kind)) continue;
       const value = currentValue(it);
-      if (!value || M.isConsent(it.label)) continue;
+      const changed = it.initial !== undefined && M.norm(value) !== M.norm(it.initial);
+      if ((it.status !== "missing" && !it.learnable && !changed) || !value || M.isConsent(it.label)) continue;
       // An exact question already answered is never overwritten. A broader question that matched
       // (e.g. "Degree" for "Do you possess the Bachelor's Degree?") keeps its answer, and this form's
       // wording is saved as its own entry, which then wins as an exact match next time.
+      // Fields left alone because they were already filled were never matched, so match them now.
+      const found = !it.entryId && M.matchQuestion(it.label, bank);
       const exact = bank.find((b) => M.norm(b.q) === M.norm(it.label));
-      const matched = it.entryId && bank.find((b) => b.id === it.entryId);
+      const matched = it.entryId ? bank.find((b) => b.id === it.entryId) : found && found.score >= M.GOOD && found.entry;
       if (exact) {
-        if ((exact.a || "").trim()) continue;
+        if ((exact.a || "").trim()) {
+          if (M.norm(exact.a) !== M.norm(value)) unsaved.push(it.label);
+          continue;
+        }
         exact.a = value;
       } else if (matched && !(matched.a || "").trim()) {
         matched.a = value;
@@ -527,7 +543,7 @@
       } else {
         bank.push({ id: "learned-" + Date.now().toString(36) + n, cat: "Learned", q: it.label, aliases: [], a: value });
       }
-      it.status = "good"; it.value = value; it.note = "Saved to your answer bank.";
+      it.status = "good"; it.value = value; it.note = "Saved to your answer bank."; it.initial = value;
       n++;
     }
     if (n) await browser.storage.local.set({ bank });
@@ -540,6 +556,6 @@
       if (!fields.length) return; // stay silent so the frame that holds the form answers
       return fill(fields);
     }
-    if (msg && msg.type === "learn" && items.length) return learn().then((n) => { renderPanel(`Saved ${n} new answer${n === 1 ? "" : "s"} to your bank.`); return { learned: n }; });
+    if (msg && msg.type === "learn" && items.length) return learn().then((n) => { renderPanel(learnMessage(n)); return { learned: n }; });
   });
 })();

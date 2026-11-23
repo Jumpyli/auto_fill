@@ -111,3 +111,25 @@ test("Lockheed (Eightfold) with Replace answers on: answered dropdowns with no b
   assert.equal(page.d.getElementById("hear").value, "Company Website");
   assert.equal(page.hasDebugButton(), true, "red dropdowns can be copied as debug info");
 });
+
+test("Lockheed case: changing an already-answered dropdown after Fill, then Save, learns the new choice", async () => {
+  const bank = bankWith({ veteran: "Not a veteran" });
+  const q = "Please select your Protected Veteran Status. (A definition of each group is provided above.)";
+  const html = `<form><div><span id="vet_l">${q}</span>
+    <div><input id="vet" role="combobox" aria-controls="list-78" aria-expanded="false" aria-labelledby="vet_l" placeholder="Select" value="I am not a protected veteran"></div></div>
+    <div><span id="ac_l">Security Clearance - Active</span>
+    <div><input id="ac" role="combobox" aria-controls="list-80" aria-expanded="false" aria-labelledby="ac_l" placeholder="Select" value=""></div></div></form>`;
+  const extra = [{ id: "learned-ac", cat: "Learned", q: "Security Clearance - Active", aliases: [], a: "Secret" }];
+  const page = loadPage(html, { bank: bank.concat(extra) });
+  await page.send({ type: "fill" }); // both left alone or failed: no menus in this page
+  page.d.getElementById("vet").value = "I don't wish to answer";             // the user picks a different option
+  page.d.getElementById("ac").value = "None of the Above";                   // conflicts with an exact saved answer
+  assert.equal((await page.send({ type: "learn" })).learned, 1);
+  const saved = page.store.bank.find((b) => b.q === q);
+  assert.equal(saved && saved.a, "I don't wish to answer", "saved under the form's exact wording");
+  assert.equal(page.store.bank.find((b) => b.id === "veteran").a, "Not a veteran", "the broader answer is unchanged");
+  assert.equal(page.store.bank.find((b) => b.id === "learned-ac").a, "Secret", "an exact saved answer is never overwritten");
+  const shadow = [...page.d.documentElement.children].pop().shadowRoot;
+  assert.match(shadow.querySelector(".msg").textContent, /already has a different answer for "Security Clearance - Active"/);
+  assert.equal((await page.send({ type: "learn" })).learned, 0, "saving twice adds nothing");
+});

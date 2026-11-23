@@ -1,6 +1,6 @@
 # Form filler — architecture
 
-`content/fill.js` (one file, about 550 lines). A content script injected into every page and frame.
+`content/fill.js` (one file, about 560 lines). A content script injected into every page and frame.
 
 ## What it does
 
@@ -29,9 +29,9 @@ When asked to, it finds the questions on an application page, fills them from th
 | 153–262 | Custom dropdowns | `fillCombo`: open the menu, pick the closest option, close it, then confirm the choice stuck. On failure it records the reason and HTML for **Copy debug info** |
 | 264–382 | Decisions | `hintId` (autocomplete/name attribute hints), `lookup`, `handle` (one field to a status: good/check/missing/skip) |
 | 384–471 | Results panel | Outlines, the panel in a closed shadow root, and the Copy debug info button |
-| 473–493 | `fill()` | Runs `handle` on every field, then custom dropdowns one at a time, then draws the results |
-| 495–535 | `currentValue()` + `learn()` | Saves answers typed into red or follow-up fields to the bank |
-| 537–544 | Message listener | Answers `fill` and `learn` requests |
+| 473–495 | `fill()` | Runs `handle` on every field, then custom dropdowns one at a time, then draws the results |
+| 497–551 | `currentValue()` + `learn()` | Saves answers typed into red or follow-up fields, or changed in any field after Fill, to the bank. `learnMessage` words the result |
+| 553–560 | Message listener | Answers `fill` and `learn` requests |
 
 ## Item statuses (shown as outline and panel color)
 
@@ -68,6 +68,8 @@ When asked to, it finds the questions on an application page, fills them from th
 | When dropdowns are filled | After all other fields, one at a time (fill.js:481–485) | Inline with other fields | Each menu opens and closes; doing them in parallel would mix their options up | Code (fill.js:481) |
 | Read-only inputs | Skip them unless they're custom dropdowns (fill.js:103–105) | Skip all read-only | Sites often make custom dropdown inputs read-only; skipping them hid those questions | Development session, 2026-11-18; comment fill.js:103 |
 | Multiple frames | A frame with no fields doesn't answer the message (fill.js:540) | Every frame answers | `tabs.sendMessage` resolves with the first answer, so an empty frame could hide the real form's result. Matters for Greenhouse forms embedded in an iframe | Comment fill.js:540; development session, 2026-11-18 |
+| Which fields learning reads | Red fields, follow-ups, and any field whose value changed since Fill finished (`it.initial`) | Red and follow-up fields only (v1) | On Lockheed, the user changed an already-answered Veteran Status dropdown and Save said "No new answers to save" | Development session, 2026-11-23 |
+| Changed field whose exact question already has a saved answer | Not overwritten; the panel says the bank already has a different answer and to change it on the bank page | Overwrite it from the form | Keeps the existing "never overwrite an existing answer" rule; the user didn't decide to reverse it | Development session, 2026-11-23 |
 | Learning when a broader question matched | Save the manual answer as a new "Learned" entry with the form's exact wording; never overwrite an existing answer | Overwrite the matched entry; or refuse (the v1 behavior) | Overwriting would break other forms that rely on the broad answer ("Degree"). Refusing meant the fix was never remembered. An exact-wording entry scores 1.0 next time, so it wins | Development session, 2026-11-18 (Lockheed screenshot) |
 | Dropdown failure details | Record the reason and the HTML around the dropdown (also for any dropdown left red, since 2026-11-23); the user copies it with **Copy debug info** | Log to the console only | The user can't easily open the developer console, and the real menu markup is needed to fix site-specific dropdowns. Nothing is sent anywhere automatically; the user decides what to share | Development session, 2026-11-18 |
 | Results panel | Closed shadow DOM, fixed bottom-right, highest z-index | Plain DOM elements | Keeps the page's CSS from restyling the panel and the page's scripts from reaching into it | Development session, 2026-11-18 |

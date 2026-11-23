@@ -116,24 +116,26 @@ flowchart TD
 
 A dropdown's menu is the element named by its `aria-controls`/`aria-owns`, and only that. Without a named menu, it's a visible `role="listbox"` that appeared after the dropdown was opened (`menuOptions`). Every exit closes the menu (Escape, blur) before the next dropdown starts. Only `role="option"` elements are clicked. If `fillCombo` throws, the field becomes **missing: pick it yourself** (line 484).
 
-## 5. "Save my new answers": `learn()` (lines 508–535)
+## 5. "Save my new answers": `learn()` (lines 509–551)
 
 ```mermaid
 flowchart TD
-    A[Each item from the last fill] --> B{Red, or a follow-up,<br/>and text/select/radio/custom dropdown?}
+    A[Each item from the last fill] --> B{Text/select/radio/custom dropdown,<br/>and red, a follow-up, or changed<br/>since Fill?}
     B -- no --> Z[ignore]
     B -- yes --> C{User has entered a value<br/>and it's not a consent question?}
     C -- no --> Z
     C -- yes --> D{Bank already has this question?<br/>same entry id or same wording}
-    D -- exact same question, answered --> Z
+    D -- exact same question, answered --> Z2[ignore; if the answer differs,<br/>say: change it on the bank page]
     D -- exact or matched question, answer empty --> E[Fill that answer]
     D -- matched a broader question, same answer --> Z
     D -- matched a broader question, different answer --> F
-    D -- no match --> F[Add to 'Learned' with the form's exact wording]
+    D -- no match<br/>(already-filled fields are matched now) --> F[Add to 'Learned' with the form's exact wording]
     E --> G[Mark item green: saved]
     F --> G
-    G --> H[Save bank once; redraw panel with 'Saved N new answers']
+    G --> H[Save bank once; redraw panel with 'Saved N new answers'<br/>plus any 'bank already has a different answer' note]
 ```
+
+"Changed since Fill" compares the field with what it showed right after Fill finished (`it.initial`, recorded in `fill()`).
 
 ## 6. Clear highlights / close
 
