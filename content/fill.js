@@ -159,28 +159,8 @@
     return fn();
   }
   function comboValue(el) {
-    let t = el.tagName === "INPUT" ? el.value.trim() : textWithout(el);
-    if (!t && el.tagName === "INPUT") t = chipText(el);
+    const t = el.tagName === "INPUT" ? el.value.trim() : textWithout(el);
     return /^(select|choose|please|--|search)/i.test(t) ? "" : t;
-  }
-  // Some dropdowns keep their input empty and show the choice as a chip beside it ("× Company Website" on
-  // Lockheed's Eightfold form). Read the text next to the input, but only inside a wrapper that holds this one
-  // control and not its question, error message or menu, so a label or "required" note is never taken as an answer.
-  function chipText(el) {
-    const ids = (a) => (el.getAttribute(a) || "").split(/\s+/).filter(Boolean);
-    const labelIds = ids("aria-labelledby"), noteIds = [...ids("aria-describedby"), ...ids("aria-errormessage")];
-    let box = el.parentElement;
-    for (let i = 0; box && i < 4; i++, box = box.parentElement) {
-      if (box.querySelectorAll('input, select, textarea, [role="combobox"]').length > 1) return "";
-      if (box.querySelector("label") || labelIds.some((id) => { const n = document.getElementById(id); return n && box.contains(n); })) return "";
-      const c = box.cloneNode(true);
-      c.querySelectorAll('select, option, input, textarea, button, svg, [role="listbox"], [role="option"], [role="alert"], [aria-live], [aria-hidden="true"], [class*="error" i], [class*="helper" i], [class*="hint" i]')
-        .forEach((n) => n.remove());
-      c.querySelectorAll("[id]").forEach((n) => noteIds.includes(n.id) && n.remove());
-      const t = squash(c.textContent);
-      if (t) return t.length <= 200 ? t : "";
-    }
-    return "";
   }
   function press(el) {
     for (const type of ["pointerdown", "mousedown", "pointerup", "mouseup", "click"]) {
@@ -228,6 +208,9 @@
       it.note = why === "no-menu"
         ? `Couldn't open this dropdown's menu. Pick "${short(it.answer, 50)}" yourself.`
         : `Menu opened, but no option matched "${short(it.answer, 40)}" (saw: ${short(seen.join(", "), 80)}). Pick it yourself.`;
+      // With "Replace answers" on, a dropdown that already had a value still has it: say so instead of showing it as empty.
+      const kept = comboValue(el);
+      if (kept) { it.status = "check"; it.value = kept; it.note = `Kept "${short(kept, 40)}". ` + it.note.replace(/ Pick (it|".*") yourself\.$/, " Check it's right."); }
       it.debug = { label: it.label, answer: it.answer, why, options: seen.slice(0, 30), steps, html: snapshot(el) };
     };
     // Already showing the answer: nothing to do, and no menu to open.
@@ -302,7 +285,22 @@
   }
   const short = (s, n = 80) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 
+  function hasValue(f) {
+    return f.inputs ? f.inputs.some((i) => i.checked) && f.kind !== "check1"
+      : f.kind === "select" ? f.el.selectedIndex > 0 && f.el.value !== ""
+      : f.kind === "combo" ? !!comboValue(f.el) : f.kind !== "check1" && !!f.el.value.trim();
+  }
+  // With "Replace answers" on, a field that already has a value but gets nothing new from the bank keeps its value.
+  // Showing it red ("No matching question") would say it's empty when it isn't. Lockheed's saved progress hit this.
   function handle(f, bank, resume, overwrite) {
+    const r = decide(f, bank, resume, overwrite);
+    if (!overwrite || r.status !== "missing" || r.pending || f.kind === "file" || !hasValue(f)) return r;
+    const entry = r.entryId && bank.find((b) => b.id === r.entryId);
+    if (!entry || !(entry.a || "").trim()) return { ...r, status: "skip", note: "Already filled in. Left as is." };
+    return { ...r, status: "check", note: "Kept what's already there. " + r.note };
+  }
+
+  function decide(f, bank, resume, overwrite) {
     const item = { label: f.label || "(unlabeled field)", el: f.el, inputs: f.inputs, kind: f.kind, status: "missing", value: "", note: "" };
 
     if (f.kind === "file") {
@@ -319,12 +317,7 @@
     }
 
     // Leave answers that are already there.
-    if (!overwrite) {
-      const has = f.inputs ? f.inputs.some((i) => i.checked) && f.kind !== "check1"
-        : f.kind === "select" ? f.el.selectedIndex > 0 && f.el.value !== ""
-        : f.kind === "combo" ? !!comboValue(f.el) : f.kind !== "check1" && f.el.value.trim();
-      if (has) return { ...item, status: "skip", note: "Already filled in. Left as is." };
-    }
+    if (!overwrite && hasValue(f)) return { ...item, status: "skip", note: "Already filled in. Left as is." };
 
     const { entry, score } = lookup(f, bank);
     // "If you answered Yes…" questions depend on another answer; fill them only from an answer saved for that exact question.

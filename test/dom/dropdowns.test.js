@@ -81,25 +81,33 @@ test("Lockheed (Eightfold) case: never reads or clicks another question's open m
   assert.ok(hasDebugButton());
 });
 
-test("Lockheed (Eightfold) case: a choice shown as a chip beside an empty input counts as answered", async () => {
-  const bank = bankWith({});
+test("Lockheed (Eightfold) with Replace answers on: answered dropdowns with no bank answer keep their value and aren't red", async () => {
+  const bank = bankWith({ "clearance-active": "No" });
+  // Markup from the real page's Copy debug info (2026-11-23), trimmed. Saved progress puts the answer in the input's value.
+  const combo = (id, label, list, value) => `<div><span id="${id}_l">${label}</span>
+    <div class="input-module_expandable-wrapper__bunkT"><div class="select-module_select-input-group__g64bR">
+      <input aria-controls="${list}" aria-expanded="false" aria-labelledby="${id}_l" aria-required="true" role="combobox" id="${id}" placeholder="Select" type="text" value="${value}">
+      <div class="input-module_action-wrapper__QLmr7"><button aria-label="Clear ${label}" type="button">×</button>
+        <button aria-hidden="true" tabindex="-1" type="button">v</button></div></div></div></div>`;
   const html = `<form>
-   <div><label id="h_l">How did you hear about this position?</label>
-     <div class="select"><div class="chips"><span class="chip"><button type="button" aria-label="Remove">×</button><span>Company Website</span></span></div>
-       <input id="hear" role="combobox" aria-controls="list-5" aria-expanded="false" aria-labelledby="h_l" placeholder="Select" value=""></div></div>
-   <div><label id="a_l">Are you 16 years or older?</label>
-     <div class="select"><div class="chips"><span class="chip"><svg aria-hidden="true"></svg><span>Yes</span></span></div>
-       <input id="age" role="combobox" aria-controls="list-6" aria-expanded="false" aria-labelledby="a_l" aria-describedby="a_err" placeholder="Select" value="">
-       <span id="a_err" class="field-error"></span></div></div>
-   <div><label id="p_l">Preferred Pronoun</label>
-     <div class="select"><input id="pron" role="combobox" aria-controls="list-7" aria-expanded="false" aria-labelledby="p_l" aria-describedby="p_err" placeholder="Select" value="">
-       <span id="p_err">This field is required</span></div></div>
+    ${combo("hear", "How did you hear about this position?", "list-176", "Company Website")}
+    ${combo("age", "Are you 16 years or older?", "list-179", "Yes")}
+    ${combo("pron", "Preferred Pronoun", "list-173", "")}
+    ${combo("clr", "Security Clearance - Active", "list-215", "None of the Above")}
   </form>`;
-  const page = loadPage(html, { bank });
+  const pageScript = MENU + `
+    const clr = document.getElementById("clr");
+    clr.addEventListener("mousedown", () => { clr.setAttribute("aria-expanded", "true");
+      menu("list-215", ["Secret", "Top Secret", "None of the Above"], (t) => { clr.value = t; clr.setAttribute("aria-expanded", "false"); }); });`;
+  const page = loadPage(html, { bank, pageScript, settings: { overwrite: true } });
   await page.send({ type: "fill" });
   const rows = page.panel();
-  assert.ok(rows.some((r) => r.startsWith("How did you hear about this position?") && r.includes("Already filled in")), rows.join("\n"));
-  assert.ok(rows.some((r) => r.startsWith("Are you 16 years or older?") && r.includes("Already filled in")), rows.join("\n"));
-  assert.ok(rows.some((r) => r.startsWith("Preferred Pronoun") && !r.includes("Already filled in")), "an empty dropdown with an error message stays unanswered");
+  const row = (q) => rows.find((r) => r.startsWith(q)) || "";
+  assert.match(row("How did you hear about this position?"), /Already filled in/, rows.join("\n"));
+  assert.match(row("Are you 16 years or older?"), /Already filled in/, rows.join("\n"));
+  assert.doesNotMatch(row("Preferred Pronoun"), /Already filled in|Kept/, "an empty dropdown stays red");
+  assert.match(row("Security Clearance - Active"), /Kept "None of the Above"/, rows.join("\n"));
+  assert.equal(page.d.getElementById("clr").value, "None of the Above", "the site's value is untouched");
+  assert.equal(page.d.getElementById("hear").value, "Company Website");
   assert.equal(page.hasDebugButton(), true, "red dropdowns can be copied as debug info");
 });

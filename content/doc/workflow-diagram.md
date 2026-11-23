@@ -46,7 +46,7 @@ sequenceDiagram
 
 If the page is a Firefox page or the add-ons store, injection fails and the popup says "Can't fill this page."
 
-## 3. One field: `handle()` decisions (lines 305–389)
+## 3. One field: `handle()` / `decide()` decisions (lines 295–382)
 
 ```mermaid
 flowchart TD
@@ -87,9 +87,11 @@ flowchart TD
     CL -- yes --> CK2[tick matches → always check]
 ```
 
-Any exception inside `handle()` turns that field into **missing: "Couldn't fill this one automatically"** (line 486). The other fields continue.
+**After the decision (overwrite on only):** if the result is missing but the field already has a value, `handle()` doesn't show it red. No bank entry or an empty answer → **skip: "Already filled in. Left as is."** A bank answer that couldn't be used (no option fits, not yes/no) → **check: "Kept what's already there. …"**. The same applies in flow 4: a failed dropdown that still shows a value becomes **check: "Kept "…". … Check it's right."**
 
-## 4. Custom dropdown: `fillCombo()` (lines 222–279)
+Any exception inside `handle()` turns that field into **missing: "Couldn't fill this one automatically"** (line 479). The other fields continue.
+
+## 4. Custom dropdown: `fillCombo()` (lines 202–262)
 
 ```mermaid
 flowchart TD
@@ -112,9 +114,9 @@ flowchart TD
     V -- no --> CK2[check: make sure it stuck]
 ```
 
-A dropdown's menu is the element named by its `aria-controls`/`aria-owns`, and only that. Without a named menu, it's a visible `role="listbox"` that appeared after the dropdown was opened (`menuOptions`). Every exit closes the menu (Escape, blur) before the next dropdown starts. Only `role="option"` elements are clicked. If `fillCombo` throws, the field becomes **missing: pick it yourself** (line 491).
+A dropdown's menu is the element named by its `aria-controls`/`aria-owns`, and only that. Without a named menu, it's a visible `role="listbox"` that appeared after the dropdown was opened (`menuOptions`). Every exit closes the menu (Escape, blur) before the next dropdown starts. Only `role="option"` elements are clicked. If `fillCombo` throws, the field becomes **missing: pick it yourself** (line 484).
 
-## 5. "Save my new answers": `learn()` (lines 515–542)
+## 5. "Save my new answers": `learn()` (lines 508–535)
 
 ```mermaid
 flowchart TD
@@ -135,4 +137,4 @@ flowchart TD
 
 ## 6. Clear highlights / close
 
-The **×** button or **Clear highlights** restores each field's original outline and removes the panel (lines 399–403). Field values stay as filled.
+The **×** button or **Clear highlights** restores each field's original outline and removes the panel (lines 392–396). Field values stay as filled.

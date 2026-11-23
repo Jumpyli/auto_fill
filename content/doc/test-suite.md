@@ -49,7 +49,7 @@ Branch references point to the flows in `workflow-diagram.md`.
 | FF-23 | Already chosen | Pick a dropdown option yourself, then Fill | That dropdown is left as is |
 
 | FF-32 | Another question's menu is open | Lockheed form with a dropdown whose menu doesn't open, while another question's Yes/No menu is visible. Fill (with "Replace answers" on) | No option in the other menu is clicked. The dropdown is red: "Couldn't open this dropdown's menu". Its value is unchanged. Copy debug info shows `steps` such as `click: expanded=false, menu=none` |
-| FF-34 | Lockheed choice shown as a tag | Lockheed's Application Questions step with answers saved earlier ("× Company Website", "× Yes" beside empty boxes). Fill | Those dropdowns are listed as "Already filled in. Left as is." with no outline. An empty dropdown ("Preferred Pronoun", "Select") is still red. **Copy debug info** appears and includes each red dropdown's HTML |
+| FF-34 | Replace answers on, saved Lockheed application | Tick **Replace answers** on the bank page. Open a Lockheed application with saved answers ("Company Website", "Yes", "None of the Above"); the bank has no answer for most of them and "No" for active clearance. Fill | Answered dropdowns with no bank answer: "Already filled in. Left as is.", no outline. Security Clearance: yellow, 'Kept "None of the Above"…', value unchanged. Empty ones ("Preferred Pronoun") are still red. **Copy debug info** appears and includes each red dropdown's HTML |
 | FF-33 | Dropdown already shows the answer | Veteran Status already shows "Not a veteran". Fill with "Replace answers" on | The dropdown isn't opened; it's listed as filled with "Not a veteran" |
 
 ## Learning (flow 5)
