@@ -7,21 +7,21 @@ There are no TODO/FIXME/HACK comments in `content/fill.js` (checked with grep). 
 | Priority | Item | Where | Details |
 |---|---|---|---|
 | Med | **Confirm Lockheed (Eightfold) dropdowns on a fresh application** | `fillCombo` in fill.js | After the own-menu fix (history #14), the Veteran Status menu opened and an option was picked on the real page (2026-11-18). So the earlier failure was the leftover-menu bug, and clicking the arrow button isn't needed. Sponsorship and Visa status were already set, so their menus weren't exercised; check them on a new application |
-| High | The simulated-page tests aren't in the repo | — | The jsdom tests (sample Greenhouse form, Lockheed layout mock, custom dropdown mocks) live in the session's temporary folder and will be lost. Add them under `test/` with `jsdom` as a dev dependency |
-| Med | Typed filter text can be left in a searchable dropdown | fill.js:222–224 | If typing showed a menu but no option matched, the typed answer stays in the box. It's only cleared when no menu appeared at all |
+| Med | **Confirm the Replace-answers fix on the real Lockheed page** | `handle` in fill.js | Tested with markup from the real debug info (history #16). Reload the add-on, Fill the Application Questions step with Replace answers on, and check that only truly empty fields are red |
+| Low | A changed field whose exact question already has a saved answer can't be updated from the form | `learn()` in fill.js | By design (never overwrite, history #17); the panel tells the user to edit it on the bank page. Ask the user before changing this |
 | Med | Radio buttons without a `name` attribute each become their own one-option group | `collect()` in fill.js | The group key falls back to `Math.random()`. Custom-built radio groups without names would be read as separate questions |
-| Low | Outline lookups can throw on unusual markup | fill.js:319, 336 | `parentElement.parentElement` can be null. The error is caught (line 444), but the field shows "Couldn't fill this one automatically" instead of being filled |
-| Low | A file field's outline can cover a large area | fill.js:267 | `closest("div")` may be a big wrapper |
-| Low | Native `<select>` options starting with "Select/Choose/Please" are treated as placeholders | fill.js:309 | A real option worded like "Please contact me" would be ignored |
+| Low | Outline lookups can throw on unusual markup | fill.js:354, 358 | `parentElement.parentElement` can be null. The error is caught (line 479), but the field shows "Couldn't fill this one automatically" instead of being filled |
+| Low | A file field's outline can cover a large area | fill.js:307 | `closest("div")` may be a big wrapper |
+| Low | Native `<select>` options starting with "Select/Choose/Please" are treated as placeholders | fill.js:344 | A real option worded like "Please contact me" would be ignored |
 | Low | Follow-up detection only looks at the start of the label | lib/match.js `isFollowUp` | "Former employees: if yes, enter ID" isn't detected |
 
 ## Tech debt
 
 | Priority | Item | Where |
 |---|---|---|
-| Low | `web-ext lint` warns "Unsafe assignment to innerHTML" | fill.js:369. Only constants and counts are inserted, and the message text goes in via `textContent`. Build the panel with DOM calls if this blocks signing |
+| Low | `web-ext lint` warns "Unsafe assignment to innerHTML" | fill.js:404. Only constants and counts are inserted, and the message text goes in via `textContent`. Build the panel with DOM calls if this blocks signing |
 | Low | The popup shows counts from only the first frame that answers | Each frame draws its own panel; summed counts would need the background script to collect from every frame |
-| Low | `fill.js` is one 510-line file | Could split into reading / writing / dropdowns / panel. Must stay classic scripts (see architecture constraints) |
+| Low | `fill.js` is one 550-line file | Could split into reading / writing / dropdowns / panel. Must stay classic scripts (see architecture constraints) |
 
 ## Possible improvements
 
@@ -29,6 +29,5 @@ There are no TODO/FIXME/HACK comments in `content/fill.js` (checked with grep). 
 |---|---|
 | High | Local matching model (small embedding model in the browser, or Ollama) for questions reworded with no shared words. v1 uses no model, though the original design called for one. Marked in code as `TODO(v2, local model)` in `lib/match.js` (`matchQuestion`) |
 | Med | Workday support: multi-page flow, its own dropdown widgets |
-| Med | Let "Save my new answers" also learn from yellow and green fields the user changed (it currently learns only from red and follow-up fields) |
 | Low | Make each custom dropdown faster. Each one waits up to about 2.8 s when its menu is slow or missing |
 | Low | Local LLM to choose options when the saved answer and the option wording differ a lot. `TODO(v2, local model)` in `lib/match.js` (`pickOption`) |

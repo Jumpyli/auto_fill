@@ -208,6 +208,9 @@
       it.note = why === "no-menu"
         ? `Couldn't open this dropdown's menu. Pick "${short(it.answer, 50)}" yourself.`
         : `Menu opened, but no option matched "${short(it.answer, 40)}" (saw: ${short(seen.join(", "), 80)}). Pick it yourself.`;
+      // With "Replace answers" on, a dropdown that already had a value still has it: say so instead of showing it as empty.
+      const kept = comboValue(el);
+      if (kept) { it.status = "check"; it.value = kept; it.note = `Kept "${short(kept, 40)}". ` + it.note.replace(/ Pick (it|".*") yourself\.$/, " Check it's right."); }
       it.debug = { label: it.label, answer: it.answer, why, options: seen.slice(0, 30), steps, html: snapshot(el) };
     };
     // Already showing the answer: nothing to do, and no menu to open.
@@ -282,7 +285,22 @@
   }
   const short = (s, n = 80) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 
+  function hasValue(f) {
+    return f.inputs ? f.inputs.some((i) => i.checked) && f.kind !== "check1"
+      : f.kind === "select" ? f.el.selectedIndex > 0 && f.el.value !== ""
+      : f.kind === "combo" ? !!comboValue(f.el) : f.kind !== "check1" && !!f.el.value.trim();
+  }
+  // With "Replace answers" on, a field that already has a value but gets nothing new from the bank keeps its value.
+  // Showing it red ("No matching question") would say it's empty when it isn't. Lockheed's saved progress hit this.
   function handle(f, bank, resume, overwrite) {
+    const r = decide(f, bank, resume, overwrite);
+    if (!overwrite || r.status !== "missing" || r.pending || f.kind === "file" || !hasValue(f)) return r;
+    const entry = r.entryId && bank.find((b) => b.id === r.entryId);
+    if (!entry || !(entry.a || "").trim()) return { ...r, status: "skip", note: "Already filled in. Left as is." };
+    return { ...r, status: "check", note: "Kept what's already there. " + r.note };
+  }
+
+  function decide(f, bank, resume, overwrite) {
     const item = { label: f.label || "(unlabeled field)", el: f.el, inputs: f.inputs, kind: f.kind, status: "missing", value: "", note: "" };
 
     if (f.kind === "file") {
@@ -299,12 +317,7 @@
     }
 
     // Leave answers that are already there.
-    if (!overwrite) {
-      const has = f.inputs ? f.inputs.some((i) => i.checked) && f.kind !== "check1"
-        : f.kind === "select" ? f.el.selectedIndex > 0 && f.el.value !== ""
-        : f.kind === "combo" ? !!comboValue(f.el) : f.kind !== "check1" && f.el.value.trim();
-      if (has) return { ...item, status: "skip", note: "Already filled in. Left as is." };
-    }
+    if (!overwrite && hasValue(f)) return { ...item, status: "skip", note: "Already filled in. Left as is." };
 
     const { entry, score } = lookup(f, bank);
     // "If you answered Yes…" questions depend on another answer; fill them only from an answer saved for that exact question.
@@ -422,7 +435,7 @@
       </div>
       <ul></ul>
       <div class="f">
-        <button class="b pr" data-a="learn" title="Save the answers you typed into red fields to your answer bank">Save my new answers</button>
+        <button class="b pr" data-a="learn" title="Save answers you typed into red fields, or changed after filling, to your answer bank">Save my new answers</button>
         <button class="b" data-a="close">Clear highlights</button>
         ${items.some((i) => i.debug) ? '<button class="b" data-a="debug" title="Copy details about dropdowns that could not be filled">Copy debug info</button>' : ""}
       </div>
@@ -453,7 +466,7 @@
         ta.remove();
       });
     });
-    root.querySelector("[data-a=learn]").addEventListener("click", () => learn().then((n) => renderPanel(n ? `Saved ${n} new answer${n > 1 ? "s" : ""} to your bank.` : "No new answers to save. Type answers into the red fields first.")));
+    root.querySelector("[data-a=learn]").addEventListener("click", () => learn().then((n) => renderPanel(learnMessage(n))));
     document.documentElement.append(host);
   }
 
@@ -470,7 +483,11 @@
       try { await fillCombo(it); }
       catch { it.status = "missing"; it.note = `Custom dropdown. Pick "${short(it.answer, 60)}" yourself.`; }
     }
+    // Red dropdowns keep their markup too, so a site whose dropdowns are misread can be studied from "Copy debug info".
+    for (const it of items) if (it.kind === "combo" && it.status === "missing" && !it.debug) it.debug = { label: it.label, why: "not-filled", note: it.note, html: snapshot(it.el) };
     for (const it of items) if (it.status !== "skip") outline(it.outline || it.el, COLORS[it.status]);
+    // What each field showed after filling, so learning can tell which ones the user changed.
+    for (const it of items) { try { it.initial = currentValue(it); } catch { it.initial = ""; } }
     renderPanel();
     const counts = { good: 0, check: 0, missing: 0, skip: 0 };
     for (const it of items) counts[it.status]++;
@@ -489,21 +506,35 @@
     return "";
   }
 
-  // Answers the user typed into fields the bank couldn't fill become new bank entries.
+  function learnMessage(n) {
+    const saved = n ? `Saved ${n} new answer${n > 1 ? "s" : ""} to your bank.` : "";
+    // An answer saved for this exact question is never overwritten from the form; say where to change it.
+    const kept = unsaved.length ? ` Your bank already has a different answer for "${short(unsaved[0], 60)}"${unsaved.length > 1 ? ` and ${unsaved.length - 1} more` : ""}. Change it on the answer bank page.` : "";
+    return (saved + kept).trim() || "No new answers to save. Type or change answers on the page first.";
+  }
+  // Answers the user typed into red fields, or changed in any other field after Fill, become bank entries.
+  let unsaved = [];
   async function learn() {
     const { bank = [] } = await browser.storage.local.get("bank");
     let n = 0;
+    unsaved = [];
     for (const it of items) {
-      if ((it.status !== "missing" && !it.learnable) || !["text", "select", "radio", "combo"].includes(it.kind)) continue;
+      if (!["text", "select", "radio", "combo"].includes(it.kind)) continue;
       const value = currentValue(it);
-      if (!value || M.isConsent(it.label)) continue;
+      const changed = it.initial !== undefined && M.norm(value) !== M.norm(it.initial);
+      if ((it.status !== "missing" && !it.learnable && !changed) || !value || M.isConsent(it.label)) continue;
       // An exact question already answered is never overwritten. A broader question that matched
       // (e.g. "Degree" for "Do you possess the Bachelor's Degree?") keeps its answer, and this form's
       // wording is saved as its own entry, which then wins as an exact match next time.
+      // Fields left alone because they were already filled were never matched, so match them now.
+      const found = !it.entryId && M.matchQuestion(it.label, bank);
       const exact = bank.find((b) => M.norm(b.q) === M.norm(it.label));
-      const matched = it.entryId && bank.find((b) => b.id === it.entryId);
+      const matched = it.entryId ? bank.find((b) => b.id === it.entryId) : found && found.score >= M.GOOD && found.entry;
       if (exact) {
-        if ((exact.a || "").trim()) continue;
+        if ((exact.a || "").trim()) {
+          if (M.norm(exact.a) !== M.norm(value)) unsaved.push(it.label);
+          continue;
+        }
         exact.a = value;
       } else if (matched && !(matched.a || "").trim()) {
         matched.a = value;
@@ -512,7 +543,7 @@
       } else {
         bank.push({ id: "learned-" + Date.now().toString(36) + n, cat: "Learned", q: it.label, aliases: [], a: value });
       }
-      it.status = "good"; it.value = value; it.note = "Saved to your answer bank.";
+      it.status = "good"; it.value = value; it.note = "Saved to your answer bank."; it.initial = value;
       n++;
     }
     if (n) await browser.storage.local.set({ bank });
@@ -525,6 +556,6 @@
       if (!fields.length) return; // stay silent so the frame that holds the form answers
       return fill(fields);
     }
-    if (msg && msg.type === "learn" && items.length) return learn().then((n) => { renderPanel(`Saved ${n} new answer${n === 1 ? "" : "s"} to your bank.`); return { learned: n }; });
+    if (msg && msg.type === "learn" && items.length) return learn().then((n) => { renderPanel(learnMessage(n)); return { learned: n }; });
   });
 })();

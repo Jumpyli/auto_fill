@@ -1,6 +1,6 @@
 # Form filler — test suite
 
-These are end-to-end cases to run by hand in Firefox, with the add-on loaded from `about:debugging` and an answer bank containing the answers named in each case. **Automated coverage:** `node test/run.js` covers matching only. Automated page tests for FF-01–FF-05, FF-08–FF-10 and FF-14–FF-16 exist only as temporary scripts (see backlog).
+These are end-to-end cases to run by hand in Firefox, with the add-on loaded from `about:debugging` and an answer bank containing the answers named in each case. **Automated coverage:** `npm test` (after `npm install`) runs `test/run.js` (matching and resume parsing) and the simulated-page tests in `test/dom/`. Those use jsdom and cover FF-01, FF-02, FF-09, FF-09b, FF-10, FF-11, FF-12, FF-14, FF-15, FF-19 (mock), FF-20 (mock), FF-21 (mock), FF-23, FF-24, FF-26, FF-29, FF-30, FF-32, FF-33, FF-34 and FF-35. Simulated pages have no real layout or iframes, so FF-03, FF-05 and real-site dropdown behavior still need a manual run in Firefox.
 
 Branch references point to the flows in `workflow-diagram.md`.
 
@@ -49,6 +49,7 @@ Branch references point to the flows in `workflow-diagram.md`.
 | FF-23 | Already chosen | Pick a dropdown option yourself, then Fill | That dropdown is left as is |
 
 | FF-32 | Another question's menu is open | Lockheed form with a dropdown whose menu doesn't open, while another question's Yes/No menu is visible. Fill (with "Replace answers" on) | No option in the other menu is clicked. The dropdown is red: "Couldn't open this dropdown's menu". Its value is unchanged. Copy debug info shows `steps` such as `click: expanded=false, menu=none` |
+| FF-34 | Replace answers on, saved Lockheed application | Tick **Replace answers** on the bank page. Open a Lockheed application with saved answers ("Company Website", "Yes", "None of the Above"); the bank has no answer for most of them and "No" for active clearance. Fill | Answered dropdowns with no bank answer: "Already filled in. Left as is.", no outline. Security Clearance: yellow, 'Kept "None of the Above"…', value unchanged. Empty ones ("Preferred Pronoun") are still red. **Copy debug info** appears and includes each red dropdown's HTML |
 | FF-33 | Dropdown already shows the answer | Veteran Status already shows "Not a veteran". Fill with "Replace answers" on | The dropdown isn't opened; it's listed as filled with "Not a veteran" |
 
 ## Learning (flow 5)
@@ -58,7 +59,8 @@ Branch references point to the flows in `workflow-diagram.md`.
 | FF-24 | Save a typed answer | After Fill, type into a red field ("Date Granted"). Click **Save my new answers** | The panel says "Saved 1 new answer". The bank page shows it under **Learned** with the form's exact wording. The next Fill on that form fills it green |
 | FF-25 | Answer for an empty bank question | Red field "Preferred Pronoun" (bank entry empty). Type an answer, then Save | The existing "Pronouns" entry gets the answer; no duplicate is created |
 | FF-26 | Save a follow-up | Type into the former-employee ID box (FF-11), then Save | Saved. The next Fill fills that exact question |
-| FF-27 | Nothing to save | Click Save without typing anything | "No new answers to save. Type answers into the red fields first." |
+| FF-35 | Save a changed dropdown | Lockheed: after Fill, change Protected Veteran Status (already answered, not red) to another option. Click Save | "Saved 1 new answer". The bank page shows it under **Learned** with the form's exact wording; "Veteran status" is unchanged. If the exact question already had a different answer, nothing is saved and the panel says to change it on the bank page |
+| FF-27 | Nothing to save | Click Save without typing anything | "No new answers to save. Type or change answers on the page first." |
 
 | FF-29 | Yes/No question matched to a description | Bank Degree "Bachelor's degree in Computer Science…". Lockheed's "Do you possess the Bachelor's Degree?" (Yes/No). Fill | Red: 'Yes/no question, but your answer to "Degree" isn't yes or no…'. Pick Yes, click Save: "Saved 1 new answer". The Degree answer is unchanged. The next Fill selects Yes (green) |
 | FF-30 | Dropdown that won't open | A custom dropdown whose menu the add-on can't find (currently Lockheed's Veteran Status). Fill | Red: "Couldn't open this dropdown's menu. Pick … yourself." A **Copy debug info** button appears; clicking it shows "Copied", and the clipboard holds JSON with the label, answer, reason and HTML |
