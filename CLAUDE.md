@@ -30,7 +30,7 @@ Not components: `test/` (referenced from each `test-suite.md`) and `vendor/` (pd
 
 ## Standing rules
 
-- Before changing a component, read its `doc/` folder first, especially `architecture.md` and `update-history.md`.
-- After changing a component, update its `doc/` files in the same task (new decisions, history entry, backlog, test cases, diagrams if the flow changed).
+- Before changing a component, read **all five** files in its `doc/` folder (`architecture.md`, `workflow-diagram.md`, `update-history.md`, `backlog.md`, `test-suite.md`).
+- After changing a component, check each of the five files and update the ones the change affects, in the same task (new decisions, history entry, backlog, test cases). If `workflow-diagram.md` no longer matches the new flow, update it.
 - Never reverse a decision listed in `architecture.md` or `update-history.md` without asking the user first.
 - Commit each fix with a message that says **why**, so future history entries can come straight from `git log`.
